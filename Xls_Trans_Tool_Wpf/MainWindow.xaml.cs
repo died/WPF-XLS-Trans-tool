@@ -58,6 +58,7 @@ namespace Xls_Trans_Tool_Wpf
             PriorityOrderTypeCheckBox.IsChecked = Properties.Settings.Default.PriorityOrderType;
             ActualManufacturerCheckBox.IsChecked = Properties.Settings.Default.Manufacturer;
             SupplierMaterialCheckBox.IsChecked = Properties.Settings.Default.Material;
+            IssueDateCheckBox.IsChecked = Properties.Settings.Default.IssueDate;
             Additional1CheckBox.IsChecked = Properties.Settings.Default.Opt1;
             Additional2CheckBox.IsChecked = Properties.Settings.Default.Opt2;
             Additional3CheckBox.IsChecked = Properties.Settings.Default.Opt3;
@@ -75,13 +76,15 @@ namespace Xls_Trans_Tool_Wpf
         /// <param name="manufacturer"></param>
         /// <param name="material"></param>
         /// <param name="opt"></param>
-        private void SaveSetting(bool shipping, bool priority, bool remark, bool manufacturer, bool material,bool[] opt, int lineHeight)
+        /// <param name="lineHeight"></param>
+        private void SaveSetting(bool shipping, bool priority, bool remark, bool manufacturer, bool material,bool issueDate, bool[] opt, int lineHeight)
         {
             Properties.Settings.Default.Remark = remark;
             Properties.Settings.Default.ShippingInstruction = shipping;
             Properties.Settings.Default.PriorityOrderType = priority;
             Properties.Settings.Default.Manufacturer = manufacturer;
             Properties.Settings.Default.Material = material;
+            Properties.Settings.Default.IssueDate = issueDate;
             Properties.Settings.Default.Opt1 = opt[0];
             Properties.Settings.Default.Opt2 = opt[1];
             Properties.Settings.Default.Opt3 = opt[2];
@@ -188,6 +191,7 @@ namespace Xls_Trans_Tool_Wpf
             var remark = RemarkCheckBox.IsChecked ?? false;
             var manufacturer = ActualManufacturerCheckBox.IsChecked ?? false;
             var material = SupplierMaterialCheckBox.IsChecked ?? false;
+            var issueDate = IssueDateCheckBox.IsChecked ?? false;
             var lineHeight = (int)LineHeight.SelectedValue;
 
             var addiitonalOptional = new[]
@@ -199,8 +203,8 @@ namespace Xls_Trans_Tool_Wpf
             ThreadPool.QueueUserWorkItem(o =>
             {
                 ShowStatusText(Wording.SaveingFile);
-                SaveSetting(shippingInstruction, priorityOrderType, remark, manufacturer, material, addiitonalOptional, lineHeight);
-                SaveExcel(location, sales, salesAssustant, shippingInstruction, priorityOrderType, remark, manufacturer, material, addiitonalOptional,lineHeight);
+                SaveSetting(shippingInstruction, priorityOrderType, remark, manufacturer, material, issueDate, addiitonalOptional, lineHeight);
+                SaveExcel(location, sales, salesAssustant, shippingInstruction, priorityOrderType, remark, manufacturer, material, issueDate, addiitonalOptional,lineHeight);
                 ShowStatusText(Wording.SaveSuccess);
                 Task.Delay(1500).ContinueWith(_ =>
                 {
@@ -223,8 +227,10 @@ namespace Xls_Trans_Tool_Wpf
         /// <param name="remark"></param>
         /// <param name="manufacturer"></param>
         /// <param name="material"></param>
+        /// <param name="issueDate"></param>
         /// <param name="ad">additional option 1~5</param>
-        private void SaveExcel(string location,string sales,string salesAssustant,bool shipping, bool priority, bool remark,bool manufacturer,bool material, bool[] ad,int lineHeight)
+        /// <param name="lineHeight"></param>
+        private void SaveExcel(string location,string sales,string salesAssustant,bool shipping, bool priority, bool remark,bool manufacturer,bool material,bool issueDate, bool[] ad,int lineHeight)
         {
             var excelApp = new Excel.Application();//{Visible = true};
             var workbooks = excelApp.Workbooks;
@@ -254,6 +260,9 @@ namespace Xls_Trans_Tool_Wpf
             #region find adidas data put into cell
             for (var i = 0; i < Dt.Rows.Count; i++)
             {
+                //check empty row
+                if(string.IsNullOrEmpty(Dt.Rows[i].Field<string>(1))|| string.IsNullOrEmpty(Dt.Rows[i].Field<string>(2))) continue;
+
                 foreach (var m in Models.AdidasToFuhsunMapping)
                 {
                     var value = Dt.Rows[i].Field<string>(ExcelTool.LettersToInt(m.Value) - 1);
@@ -268,10 +277,10 @@ namespace Xls_Trans_Tool_Wpf
                     //Material color to color code/desc
                     if (m.Value == "BM")
                     {
-                        var ar = value.Split(';');
+                        var ar = value.Split(new[] { ';', '/'}, StringSplitOptions.RemoveEmptyEntries);
                         var colorCode = new List<string>();
                         var colorDesc = new List<string>();
-                        foreach (string t in ar)
+                        foreach (var t in ar)
                         {
                             var s = t.Trim();
                             if (s.Length > 5)
@@ -279,12 +288,22 @@ namespace Xls_Trans_Tool_Wpf
                                 colorCode.Add(s.Substring(s.Length - 4, 4));
                                 colorDesc.Add(s.Substring(0, s.Length - 4).Trim());
                             }
+                            //only multi colorCode
+                            else
+                            {
+                                colorCode.Add(t);
+                            }
                         }
                         //try make sure the format is right
                         if (colorCode.Count > 0 && colorCode.Count == colorDesc.Count)
                         {
                             value = string.Join("/", colorCode);
                             workSheet.Cells[2 + i, "N"] = string.Join("/", colorDesc);
+                        }
+                        //only code
+                        else
+                        {
+                            value = string.Join("/", colorCode);
                         }
                     }
                     workSheet.Cells[2 + i, m.Key] = value;
@@ -387,6 +406,13 @@ namespace Xls_Trans_Tool_Wpf
                 summaryMapping.Add("CO");
             }
 
+            //add issue Date 20181130
+            if (issueDate)
+            {
+                summaryHeader.Insert(0, "Issue Date");
+                summaryMapping.Insert(0, "A");
+            }
+
             //add contact person
             summaryHeader.Add("Contact Person");
             summaryMapping.Add("O");
@@ -407,6 +433,8 @@ namespace Xls_Trans_Tool_Wpf
             //fill content
             for (var i = 0; i < Dt.Rows.Count; i++)
             {
+                if (string.IsNullOrEmpty(Dt.Rows[i].Field<string>(1)) || string.IsNullOrEmpty(Dt.Rows[i].Field<string>(2))) continue;
+
                 for (var j = 0; j < summaryMapping.Count; j++)
                 {
                     var source = summaryMapping[j];
@@ -422,9 +450,9 @@ namespace Xls_Trans_Tool_Wpf
                         hiddenColumn.Add(j+1);
                     }
                     //matrial color => color code/desc
-                    if (source == "BM")
+                    if (source == "BM" && !string.IsNullOrEmpty(value))
                     {
-                        var ar = value.Split(';');
+                        var ar = value.Split(new[] { ';', '/' }, StringSplitOptions.RemoveEmptyEntries);
                         var colorCode = new List<string>();
                         var colorDesc = new List<string>();
                         foreach (string t in ar)
@@ -435,12 +463,22 @@ namespace Xls_Trans_Tool_Wpf
                                 colorCode.Add(s.Substring(s.Length - 4, 4));
                                 colorDesc.Add(s.Substring(0, s.Length - 4).Trim());
                             }
+                            //only multi colorCode
+                            else
+                            {
+                                colorCode.Add(t);
+                            }
                         }
                         //try make sure the format is right
                         if (colorCode.Count > 0 && colorCode.Count == colorDesc.Count)
                         {
                             value = string.Join("/", colorCode);
                             newWorksheet.Cells[2 + i, "F"] = string.Join("/", colorDesc);
+                        }
+                        //only code
+                        else
+                        {
+                            value = string.Join("/", colorCode);
                         }
                     }
                     newWorksheet.Cells[2 + i, j+1] = value;
@@ -450,18 +488,18 @@ namespace Xls_Trans_Tool_Wpf
                 try
                 {
                     var last = summaryHeader.Count;
-                    //put last column's value to cn
+                    //put batch column's value to last-1
                     var v = Dt.Rows[i].Field<string>(ExcelTool.LettersToInt("CQ") - 1);
                     if (!string.IsNullOrEmpty(v))
                     {
-                        var range = newWorksheet.Cells[2 + i, last] as Excel.Range;
+                        var range = newWorksheet.Cells[2 + i, last-1] as Excel.Range;
                         if (range != null && range.Value2 != null)
                         {
-                            newWorksheet.Cells[2 + i, last] = range.Value2.ToString() + "," + v;
+                            newWorksheet.Cells[2 + i, last-1] = range.Value2.ToString() + "," + v;
                         }
                         else
                         {
-                            newWorksheet.Cells[2 + i, last] = v;
+                            newWorksheet.Cells[2 + i, last-1] = v;
                         }
                     }   
                 }

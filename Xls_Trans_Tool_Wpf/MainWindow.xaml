@@ -49,6 +49,7 @@
             <CheckBox x:Name="RemarkCheckBox" Content="Remark" Grid.Column="2" HorizontalAlignment="Left" Margin="5,5" Grid.Row="3" VerticalAlignment="Top" />
             <CheckBox x:Name="ActualManufacturerCheckBox" Content="Actual Manufacturer" Grid.Column="3" Grid.Row="3" Margin="5,5"  VerticalAlignment="Top"/>
             <CheckBox x:Name="SupplierMaterialCheckBox" Content="Supplier Material Name" Grid.Column="0" Grid.Row="4" Margin="5,5"  VerticalAlignment="Top"/>
+            <CheckBox x:Name="IssueDateCheckBox" Content="Issue Date" Grid.Column="1" Grid.Row="4" Margin="5,5" VerticalAlignment="Top"></CheckBox>
             <Grid Height="Auto" Margin="0" VerticalAlignment="Top" MinWidth="575" Grid.Column="0" Grid.Row="5" ColumnSpan="4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"></ColumnDefinition>

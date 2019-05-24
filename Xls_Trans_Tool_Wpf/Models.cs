@@ -137,10 +137,6 @@ namespace Xls_Trans_Tool_Wpf
             ,"Color\nMatching"//,"Shipping\nInstruction",
         };
 
-        //public static List<string> RemarkHeaders = new List<string>
-        //{
-        //    "Remarks","Additional\nOptional 1", "Additional\nOptional 2", "Additional\nOptional 3", "Additional\nOptional 4", "Additional\nOptional 5"
-        //};
         public static List<string> RemarkHeaders = new List<string>
         {
             "Remarks"//,"Additional\nOptional 1", "Additional\nOptional 2", "Additional\nOptional 3", "Additional\nOptional 4", "Additional\nOptional 5"

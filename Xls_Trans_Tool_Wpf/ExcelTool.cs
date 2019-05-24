@@ -111,12 +111,12 @@ namespace Xls_Trans_Tool_Wpf
                         }
                         catch (Exception)
                         {
-                            cellVal = data[rCnt, cCnt] != null ? data[rCnt, cCnt].ToString() : null;
+                            cellVal = data[rCnt, cCnt]?.ToString();
                         }
                     }
                     else
                     {
-                        cellVal = data[rCnt, cCnt] != null ? data[rCnt, cCnt].ToString() : null; 
+                        cellVal = data[rCnt, cCnt]?.ToString(); 
                     }
 
                     DataRow row;
